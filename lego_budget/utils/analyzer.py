@@ -11,8 +11,10 @@ def analyze_sets(df: pd.DataFrame) -> None:
     """Analyze and display statistics about LEGO sets."""
     # Total spending
     total_spending = df["Price"].sum()
+    total_pieces = df["Number of pieces"].sum()
+    total_price_per_piece = total_spending / total_pieces
 
-    # Calculate price per piece for all sets
+    # Calculate price per piece for all sets (for individual rows)
     df["price_per_piece"] = df["Price"] / df["Number of pieces"]
 
     # Status distribution with spending
@@ -23,11 +25,14 @@ def analyze_sets(df: pd.DataFrame) -> None:
                 "Set": "count",
                 "Number of pieces": "sum",
                 "Price": "sum",
-                "price_per_piece": "mean",
             }
         )
         .round(2)
     )
+    # Calculate price per piece for each status
+    status_stats["price_per_piece"] = (
+        status_stats["Price"] / status_stats["Number of pieces"]
+    ).round(3)
 
     # Product distribution with spending
     product_stats = (
@@ -37,11 +42,14 @@ def analyze_sets(df: pd.DataFrame) -> None:
                 "Set": "count",
                 "Number of pieces": "sum",
                 "Price": "sum",
-                "price_per_piece": "mean",
             }
         )
         .round(2)
     )
+    # Calculate price per piece for each product
+    product_stats["price_per_piece"] = (
+        product_stats["Price"] / product_stats["Number of pieces"]
+    ).round(3)
 
     # Technic distribution with spending
     technic_stats = (
@@ -51,11 +59,14 @@ def analyze_sets(df: pd.DataFrame) -> None:
                 "Set": "count",
                 "Number of pieces": "sum",
                 "Price": "sum",
-                "price_per_piece": "mean",
             }
         )
         .round(2)
     )
+    # Calculate price per piece for each type
+    technic_stats["price_per_piece"] = (
+        technic_stats["Price"] / technic_stats["Number of pieces"]
+    ).round(3)
 
     # Display results
     console.print("\n[bold blue]LEGO Budget Analysis[/bold blue]")
@@ -65,10 +76,72 @@ def analyze_sets(df: pd.DataFrame) -> None:
     spending_table.add_column("Metric", style="cyan")
     spending_table.add_column("Value", style="green")
     spending_table.add_row("Total Spending", f"{total_spending:.2f} €")
-    spending_table.add_row(
-        "Average Price per Piece", f"{df['price_per_piece'].mean():.3f} €"
-    )
+    spending_table.add_row("Average Price per Piece", f"{total_price_per_piece:.3f} €")
     console.print(spending_table)
+
+    # Monthly analysis
+    if "Order date" in df.columns:
+        # Convert Order date column to datetime
+        df["Order date"] = pd.to_datetime(df["Order date"])
+        # Extract month and year
+        df["Month"] = df["Order date"].dt.month
+        df["Year"] = df["Order date"].dt.year
+
+        # Monthly statistics
+        monthly_stats = (
+            df.groupby(["Year", "Month"])
+            .agg(
+                {
+                    "Set": "count",
+                    "Number of pieces": "sum",
+                    "Price": "sum",
+                }
+            )
+            .round(2)
+        )
+
+        # Display monthly analysis
+        monthly_table = Table(title="Monthly Spending and Purchases")
+        monthly_table.add_column("Year", style="cyan")
+        monthly_table.add_column("Month", style="green")
+        monthly_table.add_column("Sets Bought", style="yellow")
+        monthly_table.add_column("Total Pieces", style="magenta")
+        monthly_table.add_column("Total Spent", style="red")
+
+        # Month names for display
+        month_names = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+
+        # Sort by year and month
+        for year, month in sorted(monthly_stats.index):
+            monthly_table.add_row(
+                str(year),
+                month_names[month - 1],
+                str(int(monthly_stats.loc[(year, month), "Set"])),
+                str(int(monthly_stats.loc[(year, month), "Number of pieces"])),
+                f"{monthly_stats.loc[(year, month), 'Price']:.2f} €",
+            )
+        # Add total row
+        monthly_table.add_row(
+            "[bold]Total[/bold]",
+            "",
+            str(int(monthly_stats["Set"].sum())),
+            str(int(monthly_stats["Number of pieces"].sum())),
+            f"{monthly_stats['Price'].sum():.2f} €",
+        )
+        console.print(monthly_table)
 
     # Status distribution table
     status_table = Table(title="Set Status Distribution")
@@ -91,7 +164,7 @@ def analyze_sets(df: pd.DataFrame) -> None:
         str(status_stats["Set"].sum()),
         str(int(status_stats["Number of pieces"].sum())),
         f"{status_stats['Price'].sum():.2f} €",
-        f"{status_stats['price_per_piece'].mean():.3f} €",
+        f"{total_price_per_piece:.3f} €",
     )
     console.print(status_table)
 
@@ -116,7 +189,7 @@ def analyze_sets(df: pd.DataFrame) -> None:
         str(product_stats["Set"].sum()),
         str(int(product_stats["Number of pieces"].sum())),
         f"{product_stats['Price'].sum():.2f} €",
-        f"{product_stats['price_per_piece'].mean():.3f} €",
+        f"{total_price_per_piece:.3f} €",
     )
     console.print(product_table)
 
@@ -141,7 +214,7 @@ def analyze_sets(df: pd.DataFrame) -> None:
         str(technic_stats["Set"].sum()),
         str(int(technic_stats["Number of pieces"].sum())),
         f"{technic_stats['Price'].sum():.2f} €",
-        f"{technic_stats['price_per_piece'].mean():.3f} €",
+        f"{total_price_per_piece:.3f} €",
     )
     console.print(technic_table)
 
