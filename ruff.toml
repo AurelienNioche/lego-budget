@@ -59,4 +59,7 @@ line-ending = "auto"
 known-first-party = ["lego_budget"]
 
 [lint.per-file-ignores]
-"__init__.py" = ["F401"] 
+"__init__.py" = ["F401"]
+
+[lint.pycodestyle]
+max-line-length = 180
